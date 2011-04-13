@@ -21,7 +21,7 @@ squares.DataDefinition = function (fields) {
         var index = subscribers.indexOf(object);
         
         if (index !== -1)
-            subscribers.remove(index);
+            subscribers.splice(index, 1);
         
         return this;
     };
@@ -31,7 +31,7 @@ squares.DataDefinition = function (fields) {
             throw "field must be a squares.DataDefinition.Field";
         
         if (index)
-            fields.insert(field, index);
+            fields.splice(index, 0, field);
         else
             fields.push(field);
         
@@ -53,7 +53,7 @@ squares.DataDefinition = function (fields) {
         var index = fields.indexOf(field);
         
         if (index !== -1)
-            fields.remove(index);
+            fields.splice(index, field);
         
         for (var i = 0; i < subscribers.length; ++i)
             subscribers[i].removeField(field);

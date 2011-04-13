@@ -47,7 +47,7 @@ squares.Cell = function (parent, formula, value) {
         var index = dependents.indexOf(cell);
         
         if (index !== -1)
-            dependents.remove(index);
+            dependents.splice(index, 1);
         
         return this;
     };
