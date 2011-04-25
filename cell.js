@@ -69,4 +69,3 @@ squares.Cell.compute = function (cell) {
     }
 };
 
-
