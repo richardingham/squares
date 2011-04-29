@@ -80,7 +80,10 @@ squares.Data = function (parent, definition, data) {
     };
     
     this.getChild = function (name) {
-        return fields[name];
+        if (name in fields)
+            return fields[name];
+        else
+            throw "ReferenceError";
     };
     
     this.addField = function (field) {

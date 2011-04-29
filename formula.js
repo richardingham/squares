@@ -1,18 +1,18 @@
 squares = {};
 
-squares.Function = function (definition, interpreted) {
+squares.Formula = function (definition, interpreted) {
     
     
     
 };
 
-squares.Function.types = {
+types = {
     NAME: 1,
     PRIMITIVE: 2,
     OPERATOR: 3
 };
 
-squares.Function.Block = function (expressions) {
+squares.Formula.Block = function (expressions) {
     
     this.push = function (expr) {
         return expressions.push(expr);
@@ -45,7 +45,7 @@ squares.Function.Block = function (expressions) {
     };
 };
 
-squares.Function.Expr = function (tokens, paren) {
+squares.Formula.Expr = function (tokens, paren) {
     
     this.tokens = tokens;
     this.paren  = paren;
@@ -63,18 +63,26 @@ squares.Function.Expr = function (tokens, paren) {
         }
         buffer.push(paren[1]);
        
-        return buffer.join(" ");
+        return buffer.join(' ');
     };
     
     this.toJS = function () {
-        return tokens;
+        var j, buffer = [], max = this.tokens.length;
+        
+        buffer.push('(');
+        for (j = 0; j < max; j++) {
+            buffer.push(this.tokens[j].toJS());
+        }
+        buffer.push(')');
+       
+        return buffer.join(' ');
     };
     
-    this.type = squares.Function.types.PRIMITIVE;
-    this.expect = [squares.Function.types.OPERATOR];
+    this.type = squares.Formula.types.PRIMITIVE;
+    this.expect = [squares.Formula.types.OPERATOR];
 };
 
-squares.Function.Primitive = function (value, type) {
+squares.Formula.Primitive = function (value, type) {
     this.toString = function () {
         return value;
     };
@@ -83,11 +91,11 @@ squares.Function.Primitive = function (value, type) {
         return value;
     };
 
-    this.type = squares.Function.types.PRIMITIVE;
-    this.expect = [squares.Function.types.OPERATOR];
+    this.type = squares.Formula.types.PRIMITIVE;
+    this.expect = [squares.Formula.types.OPERATOR];
 };
 
-squares.Function.Operator = function (operator) {
+squares.Formula.Operator = function (operator) {
     if (operator == '=' || operator == '===') {
         operator = '==';
     } else if (operator == '&') {
@@ -102,11 +110,11 @@ squares.Function.Operator = function (operator) {
         return operator;
     };
 
-    this.type = squares.Function.types.OPERATOR;
-    this.expect = [squares.Function.types.PRIMITIVE, squares.Function.types.NAME];
+    this.type = squares.Formula.types.OPERATOR;
+    this.expect = [squares.Formula.types.PRIMITIVE, squares.Formula.types.NAME];
 };
 
-squares.Function.Name = function (name) {
+squares.Formula.Name = function (name) {
     name = name.toUpperCase();
     
     this.toString = function () {
@@ -114,14 +122,14 @@ squares.Function.Name = function (name) {
     };
     
     this.toJS = function () {
-        return "v:" + name;
+        return "data.getChild(\"" + name + "\").value()";
     };
 
-    this.type = squares.Function.types.NAME;
-    this.expect = [squares.Function.types.OPERATOR];
+    this.type = squares.Formula.types.NAME;
+    this.expect = [squares.Formula.types.OPERATOR];
 };
 
-squares.Function.Function = function (name, args) {
+squares.Formula.Function = function (name, args) {
     name = name.toUpperCase();
     
     this.toString = function () {
@@ -138,11 +146,11 @@ squares.Function.Function = function (name, args) {
         return "f:" + name;
     };
 
-    this.type = squares.Function.types.NAME;
-    this.expect = [squares.Function.types.OPERATOR];
+    this.type = squares.Formula.types.NAME;
+    this.expect = [squares.Formula.types.OPERATOR];
 };
 
-squares.Function.parse = function (definition) {
+squares.Formula.parse = function (definition) {
 
     var i = 0;
     var str_re = /^"[^"\\]*(?:\\.[^"\\]*)*"|^'[^'\\]*(?:\\.[^'\\]*)*'/;
@@ -192,10 +200,10 @@ squares.Function.parse = function (definition) {
             }
             
             var last_token = tokens.pop();
-            return new squares.Function.Expr([
+            return new squares.Formula.Expr([
                 last_token,
-                new squares.Function.Operator('*'),
-                new squares.Function.Primitive(0.01, "number")
+                new squares.Formula.Operator('*'),
+                new squares.Formula.Primitive(0.01, "number")
             ], '(');   
         }
  
@@ -227,7 +235,7 @@ squares.Function.parse = function (definition) {
         var
         op,
         token, 
-        expect = [squares.Function.types.NAME, squares.Function.types.PRIMITIVE, squares.Function.types.OPERATOR],
+        expect = [squares.Formula.types.NAME, squares.Formula.types.PRIMITIVE, squares.Formula.types.OPERATOR],
         args   = [],
         block  = [],
         tokens = [];
@@ -246,28 +254,28 @@ squares.Function.parse = function (definition) {
                 throw error(i, "Unexpected " + token.type);
             }
             
-            if (token.type == squares.Function.types.OPERATOR) {
+            if (token.type == squares.Formula.types.OPERATOR) {
                 token = process_operator(token, tokens);
                 
-                if (token.type == squares.Function.types.OPERATOR) {
+                if (token.type == squares.Formula.types.OPERATOR) {
                     op = token.toString();
                     
                     if (op == terminator) {
                         break;
                         
                     } else if (sep && op == sep) {
-                        block.push(new squares.Function.Expr(tokens));
+                        block.push(new squares.Formula.Expr(tokens));
                         tokens = [];
                         continue;
                         
                     } else if (arg_sep && op == arg_sep) {
                         if (block.length > 0) {
-                            block.push(new squares.Function.Expr(tokens));
-                            args.push(new squares.Function.Block(block));
+                            block.push(new squares.Formula.Expr(tokens));
+                            args.push(new squares.Formula.Block(block));
                             tokens = [];
                             block  = [];
                         } else {
-                            args.push(new squares.Function.Expr(tokens));
+                            args.push(new squares.Formula.Expr(tokens));
                             tokens = [];
                         }
                         continue;
@@ -286,7 +294,7 @@ squares.Function.parse = function (definition) {
         // If we've had expressions prior to this one...
         if (block.length > 0) {
             if (tokens.length > 0)
-                block.push(new squares.Function.Expr(tokens));
+                block.push(new squares.Formula.Expr(tokens));
             
             // i.e. the final and second expr was empty and hence not pushed
             if (block.length == 1)
@@ -300,9 +308,9 @@ squares.Function.parse = function (definition) {
         // then return that array.
         if (arg_sep) {
             if (block.length > 0) {
-                args.push(new squares.Function.Block(block));
+                args.push(new squares.Formula.Block(block));
             } else {
-                args.push(new squares.Function.Expr(tokens));
+                args.push(new squares.Formula.Expr(tokens));
             }
             
             return args;
@@ -310,9 +318,9 @@ squares.Function.parse = function (definition) {
         
         // Or, return either the block or the tokens
         if (block.length > 0)
-            return new squares.Function.Block(block);
+            return new squares.Formula.Block(block);
         
-        return new squares.Function.Expr(tokens);
+        return new squares.Formula.Expr(tokens);
     };
         
     var get_token = function () {
@@ -327,21 +335,21 @@ squares.Function.parse = function (definition) {
             //console.log("match op:     ", token);
             i = clear_space(i + token.length);
 
-            return new squares.Function.Operator(token);
+            return new squares.Formula.Operator(token);
         
         // Strings
         } else if ((token = grab(i, str_re)) !== null) {
             //console.log("match string: ", token);
             i = clear_space(i + token.length);
             
-            return new squares.Function.Primitive(token, "string");
+            return new squares.Formula.Primitive(token, "string");
 
         // Numbers
         } else if ((token = grab(i, num_re)) !== null) {
             //console.log("match number: ", token);
             i = clear_space(i + token.length);
             
-            return new squares.Function.Primitive(token, "number");
+            return new squares.Formula.Primitive(token, "number");
                 
         // Variable / Function
         } else if ((token = grab(i, id_re)) !== null) {
@@ -350,17 +358,17 @@ squares.Function.parse = function (definition) {
             
             if (peek() == '(') {
                 i = clear_space(i + 1);
-                return new squares.Function.Function(token, get_args());
+                return new squares.Formula.Function(token, get_args());
                 
             } else {
                 name_lc = token.toLowerCase();
                 if (name_lc == "true") {
-                    return new squares.Function.Primitive("TRUE", "boolean");
+                    return new squares.Formula.Primitive("TRUE", "boolean");
                 } else if (name_lc == "false") {
-                    return new squares.Function.Primitive("FALSE", "boolean");
+                    return new squares.Formula.Primitive("FALSE", "boolean");
                 }
                 
-                return new squares.Function.Name(token);
+                return new squares.Formula.Name(token);
             }
             
         // Nothing matches
@@ -382,4 +390,4 @@ var tests = [
 "1.0"
 ];
 for (var k = 0; k < tests.length; k++) 
-    console.log(squares.Function.parse(tests[k]).toString());
+    console.log(squares.Formula.parse(tests[k]).toString());
